@@ -1,4 +1,4 @@
-import { Query, Resolver } from "@nestjs/graphql";
+import { Args, Query, Resolver } from "@nestjs/graphql";
 import { JokeObject } from "../objetcs/joke.object";
 import { Injectable, Logger } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
@@ -6,6 +6,7 @@ import { AxiosError } from "axios";
 import { catchError, firstValueFrom } from "rxjs";
 import * as deepl from 'deepl-node';
 import { JokeInterface } from "../objetcs/joke.interface";
+import { LanguageArgs } from "../args/language.args";
 
 type PropsType = {
     jokeText: string
@@ -22,11 +23,11 @@ export class ChuckNorrisResolver{
     constructor(private readonly httpService: HttpService) {}
 
     @Query(() => JokeObject)
-    async jokeRandom(targetLang?: string){
-        return await this.getJoke(targetLang)
+    async jokeRandom(@Args() { data }: LanguageArgs): Promise<JokeObject> {
+        return await this.getJoke(data.targetLang)
     }
 
-    async getJoke(targetLang?: string): Promise<JokeObject> {
+    async getJoke(@Args() targetLang?: string): Promise<JokeObject> {
         const { data } = await firstValueFrom(
             this.httpService.get<JokeInterface>('https://api.chucknorris.io/jokes/random').pipe(
               catchError((error: AxiosError) => {
