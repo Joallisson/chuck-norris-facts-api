@@ -6,7 +6,7 @@ import { AxiosError } from "axios";
 import { catchError, firstValueFrom } from "rxjs";
 import * as deepl from 'deepl-node';
 import { JokeInterface } from "../objetcs/joke.interface";
-import { LanguageArgs } from "../args/language.args";
+import { JokeArgs } from "../args/joke.args";
 
 type PropsType = {
     jokeText: string
@@ -23,13 +23,13 @@ export class ChuckNorrisResolver{
     constructor(private readonly httpService: HttpService) {}
 
     @Query(() => JokeObject)
-    async jokeRandom(@Args() { data }: LanguageArgs): Promise<JokeObject> {
-        return await this.getJoke(data.targetLang)
+    async jokeRandom(@Args() { data }: JokeArgs): Promise<JokeObject> {
+        return await this.getJoke(data.targetLang, data.category)
     }
 
-    async getJoke(@Args() targetLang?: string): Promise<JokeObject> {
+    async getJoke(@Args() targetLang?: string, category?: string): Promise<JokeObject> {
         const { data } = await firstValueFrom(
-            this.httpService.get<JokeInterface>('https://api.chucknorris.io/jokes/random').pipe(
+            this.httpService.get<JokeInterface>(`https://api.chucknorris.io/jokes/random${ category ? '?category=' + category : ''}`).pipe(
               catchError((error: AxiosError) => {
                 this.logger.error(error.response.data);
                 throw 'An error happened!';
@@ -37,16 +37,21 @@ export class ChuckNorrisResolver{
             ),
           );
 
-        const jokeTranslated = await this.translateJoke({
-            jokeText: data.value,
-            targetLang
-        })
+          if(targetLang != 'en'){
+            const jokeTranslated = await this.translateJoke({
+              jokeText: data.value,
+              targetLang
+            })
+  
+            return new JokeObject({...data, value: jokeTranslated.toString()});
+          }
 
-        return new JokeObject({...data, value: jokeTranslated.toString()});
-        
+          return new JokeObject(data)
     }
 
     async translateJoke({jokeText, targetLang = 'pt-BR'}: PropsType): Promise<String> {
+        //return "Quando Chuck Norris olha para o sol, o sol pisca."
+
         try {
             const authKey = process.env.DEEPL_KEY;
             const translator = new deepl.Translator(authKey);
@@ -59,5 +64,28 @@ export class ChuckNorrisResolver{
             console.error('Error translating text:', error);
             return "Translation error";
         }
+    }
+
+
+
+
+
+    @Query(() => [String])
+    async getCategories(): Promise<string[]>{
+
+        return await this.getAllCategories();
+    }
+
+    async getAllCategories(): Promise<string[]> {
+        const { data } = await firstValueFrom(
+            this.httpService.get<string[]>('https://api.chucknorris.io/jokes/categories').pipe(
+              catchError((error: AxiosError) => {
+                this.logger.error(error.response.data);
+                throw 'An error happened!';
+              }),
+            ),
+          );
+
+        return data
     }
 }
