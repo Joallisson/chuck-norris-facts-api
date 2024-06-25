@@ -3,6 +3,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ChuckNorrisResolver } from './graphql/resolver/chuck-norris.resolver';
 import { HttpModule } from '@nestjs/axios';
+import { ApiChuckNorrisFactsService } from './graphql/services/api-chuck-norris-facts.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { HttpModule } from '@nestjs/axios';
     }),
   ],
   controllers: [],
-  providers: [ChuckNorrisResolver],
+  providers: [ChuckNorrisResolver, ApiChuckNorrisFactsService],
 })
 export class AppModule {}
